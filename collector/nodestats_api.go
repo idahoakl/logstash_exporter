@@ -69,6 +69,11 @@ type NodeStatsResponse struct {
 		CPU struct {
 			TotalInMillis int64 `json:"total_in_millis"`
 			Percent       int   `json:"percent"`
+			LoadAvg       struct {
+				OneMin     float64 `json:"1m"`
+				FiveMin    float64 `json:"5m"`
+				FifteenMin float64 `json:"15m"`
+			} `json:"load_average"`
 		} `json:"cpu"`
 	} `json:"process"`
 	Pipeline struct {
@@ -118,6 +123,20 @@ type NodeStatsResponse struct {
 			LastFailureTimestamp interface{} `json:"last_failure_timestamp"`
 			Failures             int         `json:"failures"`
 		} `json:"reloads"`
+		Queue struct {
+			Events   int    `json:"events,omitempty"`
+			Type     string `json:"type"`
+			Capacity struct {
+				PageCapacityBytes int64 `json:"page_capacity_in_bytes,omitempty"`
+				MaxQueueSizeBytes int64 `json:"max_queue_size_in_bytes,omitempty"`
+				MaxUnreadEvents   int64 `json:"max_unread_events,omitempty"`
+			} `json:"capacity"`
+			Data struct {
+				Path           string `json:"path,omitempty"`
+				FreeSpaceBytes int64  `json:"free_space_in_bytes,omitempty"`
+				StorageType    string `json:"storage_type,omitempty"`
+			} `json:"data"`
+		} `json:"queue"`
 	} `json:"pipeline"`
 }
 
