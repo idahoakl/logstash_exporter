@@ -30,6 +30,10 @@ type NodeStatsCollector struct {
 	ProcessMaxFileDescriptors     *prometheus.Desc
 	ProcessMemTotalVirtualInBytes *prometheus.Desc
 	ProcessCPUTotalInMillis       *prometheus.Desc
+	ProcessCPUPercent             *prometheus.Desc
+	ProcessCPULoadAvgOneMin       *prometheus.Desc
+	ProcessCPULoadAvgFiveMin      *prometheus.Desc
+	ProcessCPULoadAvgFifteenMin   *prometheus.Desc
 
 	PipelineDuration       *prometheus.Desc
 	PipelineEventsIn       *prometheus.Desc
@@ -41,6 +45,12 @@ type NodeStatsCollector struct {
 	PipelinePluginEventsOut      *prometheus.Desc
 	PipelinePluginMatches        *prometheus.Desc
 	PipelinePluginFailures       *prometheus.Desc
+
+	QueueEventCount         *prometheus.Desc
+	QueuePageCapacityBytes  *prometheus.Desc
+	QueueMaxSizeBytes       *prometheus.Desc
+	QueueMaxUnreadEvents    *prometheus.Desc
+	QueueDataFreeSpaceBytes *prometheus.Desc
 }
 
 func NewNodeStatsCollector(logstash_endpoint string) (error, Collector) {
@@ -175,6 +185,34 @@ func NewNodeStatsCollector(logstash_endpoint string) (error, Collector) {
 			nil,
 		),
 
+		ProcessCPUPercent: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_percent"),
+			"process_cpu_percent",
+			nil,
+			nil,
+		),
+
+		ProcessCPULoadAvgOneMin: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_1m"),
+			"process_cpu_load_1m",
+			nil,
+			nil,
+		),
+
+		ProcessCPULoadAvgFiveMin: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_5m"),
+			"process_cpu_load_5m",
+			nil,
+			nil,
+		),
+
+		ProcessCPULoadAvgFifteenMin: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_15m"),
+			"process_cpu_load_15m",
+			nil,
+			nil,
+		),
+
 		PipelineDuration: prometheus.NewDesc(
 			prometheus.BuildFQName(Namespace, subsystem, "pipeline_duration_seconds_total"),
 			"pipeline_duration_seconds_total",
@@ -235,6 +273,41 @@ func NewNodeStatsCollector(logstash_endpoint string) (error, Collector) {
 			prometheus.BuildFQName(Namespace, subsystem, "plugin_failures_total"),
 			"plugin_failures",
 			[]string{"plugin", "plugin_id", "plugin_type"},
+			nil,
+		),
+
+		QueueEventCount: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "queue_event_count"),
+			"Count of events in queue",
+			nil,
+			nil,
+		),
+
+		QueuePageCapacityBytes: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "queue_page_capacity_bytes"),
+			"queue_page_capacity_bytes",
+			nil,
+			nil,
+		),
+
+		QueueMaxSizeBytes: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "queue_max_size_bytes"),
+			"queue_max_size_bytes",
+			nil,
+			nil,
+		),
+
+		QueueMaxUnreadEvents: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "queue_max_unread_events"),
+			"queue_max_unread_events",
+			nil,
+			nil,
+		),
+
+		QueueDataFreeSpaceBytes: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, subsystem, "queue_data_free_space_bytes"),
+			"queue_data_free_space_bytes",
+			nil,
 			nil,
 		),
 	}
@@ -454,6 +527,30 @@ func (c *NodeStatsCollector) collect(ch chan<- prometheus.Metric) (*prometheus.D
 	)
 
 	ch <- prometheus.MustNewConstMetric(
+		c.ProcessCPUPercent,
+		prometheus.GaugeValue,
+		float64(stats.Process.CPU.Percent),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.ProcessCPULoadAvgOneMin,
+		prometheus.GaugeValue,
+		stats.Process.CPU.LoadAvg.OneMin,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.ProcessCPULoadAvgFiveMin,
+		prometheus.GaugeValue,
+		stats.Process.CPU.LoadAvg.FiveMin,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.ProcessCPULoadAvgFifteenMin,
+		prometheus.GaugeValue,
+		stats.Process.CPU.LoadAvg.FifteenMin,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
 		c.PipelineDuration,
 		prometheus.CounterValue,
 		float64(stats.Pipeline.Events.DurationInMillis/1000),
@@ -555,6 +652,38 @@ func (c *NodeStatsCollector) collect(ch chan<- prometheus.Metric) (*prometheus.D
 			plugin.Name,
 			plugin.ID,
 			"output",
+		)
+	}
+
+	if stats.Pipeline.Queue.Type == "persisted" {
+		ch <- prometheus.MustNewConstMetric(
+			c.QueueEventCount,
+			prometheus.GaugeValue,
+			float64(stats.Pipeline.Queue.Events),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			c.QueuePageCapacityBytes,
+			prometheus.GaugeValue,
+			float64(stats.Pipeline.Queue.Capacity.PageCapacityBytes),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			c.QueueMaxSizeBytes,
+			prometheus.GaugeValue,
+			float64(stats.Pipeline.Queue.Capacity.MaxQueueSizeBytes),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			c.QueueMaxUnreadEvents,
+			prometheus.GaugeValue,
+			float64(stats.Pipeline.Queue.Capacity.MaxUnreadEvents),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			c.QueueDataFreeSpaceBytes,
+			prometheus.GaugeValue,
+			float64(stats.Pipeline.Queue.Data.FreeSpaceBytes),
 		)
 	}
 
