@@ -30,10 +30,6 @@ type NodeStatsCollector struct {
 	ProcessMaxFileDescriptors     *prometheus.Desc
 	ProcessMemTotalVirtualInBytes *prometheus.Desc
 	ProcessCPUTotalInMillis       *prometheus.Desc
-	ProcessCPUPercent             *prometheus.Desc
-	ProcessCPULoadAvgOneMin       *prometheus.Desc
-	ProcessCPULoadAvgFiveMin      *prometheus.Desc
-	ProcessCPULoadAvgFifteenMin   *prometheus.Desc
 
 	PipelineDuration       *prometheus.Desc
 	PipelineEventsIn       *prometheus.Desc
@@ -181,34 +177,6 @@ func NewNodeStatsCollector(logstash_endpoint string) (error, Collector) {
 		ProcessCPUTotalInMillis: prometheus.NewDesc(
 			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_total_seconds_total"),
 			"process_cpu_total_seconds_total",
-			nil,
-			nil,
-		),
-
-		ProcessCPUPercent: prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_percent"),
-			"process_cpu_percent",
-			nil,
-			nil,
-		),
-
-		ProcessCPULoadAvgOneMin: prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_1m"),
-			"process_cpu_load_1m",
-			nil,
-			nil,
-		),
-
-		ProcessCPULoadAvgFiveMin: prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_5m"),
-			"process_cpu_load_5m",
-			nil,
-			nil,
-		),
-
-		ProcessCPULoadAvgFifteenMin: prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, subsystem, "process_cpu_load_15m"),
-			"process_cpu_load_15m",
 			nil,
 			nil,
 		),
@@ -524,30 +492,6 @@ func (c *NodeStatsCollector) collect(ch chan<- prometheus.Metric) (*prometheus.D
 		c.ProcessCPUTotalInMillis,
 		prometheus.CounterValue,
 		float64(stats.Process.CPU.TotalInMillis/1000),
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		c.ProcessCPUPercent,
-		prometheus.GaugeValue,
-		float64(stats.Process.CPU.Percent),
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		c.ProcessCPULoadAvgOneMin,
-		prometheus.GaugeValue,
-		stats.Process.CPU.LoadAvg.OneMin,
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		c.ProcessCPULoadAvgFiveMin,
-		prometheus.GaugeValue,
-		stats.Process.CPU.LoadAvg.FiveMin,
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		c.ProcessCPULoadAvgFifteenMin,
-		prometheus.GaugeValue,
-		stats.Process.CPU.LoadAvg.FifteenMin,
 	)
 
 	ch <- prometheus.MustNewConstMetric(
