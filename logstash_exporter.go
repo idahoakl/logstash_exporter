@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/DagensNyheter/logstash_exporter/collector"
+	"github.com/idahoakl/logstash_exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
@@ -22,6 +22,15 @@ var (
 			Help:      "logstash_exporter: Duration of a scrape job.",
 		},
 		[]string{"collector", "result"},
+	)
+
+	logstashUp = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: collector.Namespace,
+			Subsystem: "exporter",
+			Name:      "logstash_up",
+			Help:      "Logstash endpoint responding",
+		},
 	)
 )
 
@@ -53,6 +62,7 @@ func listen(exporter_bind_address string) {
 
 func (coll LogstashCollector) Describe(ch chan<- *prometheus.Desc) {
 	scrapeDurations.Describe(ch)
+	logstashUp.Describe(ch)
 }
 
 func (coll LogstashCollector) Collect(ch chan<- prometheus.Metric) {
@@ -66,6 +76,7 @@ func (coll LogstashCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	wg.Wait()
 	scrapeDurations.Collect(ch)
+	logstashUp.Collect(ch)
 }
 
 func execute(name string, c collector.Collector, ch chan<- prometheus.Metric) {
@@ -77,9 +88,11 @@ func execute(name string, c collector.Collector, ch chan<- prometheus.Metric) {
 	if err != nil {
 		log.Errorf("ERROR: %s collector failed after %fs: %s", name, duration.Seconds(), err)
 		result = "error"
+		logstashUp.Set(float64(0))
 	} else {
 		log.Debugf("OK: %s collector succeeded after %fs.", name, duration.Seconds())
 		result = "success"
+		logstashUp.Set(float64(1))
 	}
 	scrapeDurations.WithLabelValues(name, result).Observe(duration.Seconds())
 }
